@@ -2,15 +2,17 @@
 #encoding: utf-8
 require 'mumble-ruby'
 require 'ruby-mpd'
-require 'cinch'
+#require 'cinch'
 require 'colorize'
+require 'rspotify'
 
-HOST = 'localhost'
+RSpotify.authenticate("#######", "#######")
+HOST = '127.0.0.1'
 PORT = '6600'
 mpd = MPD.new(HOST,PORT, {callbacks: true})
 begin
         mpd.connect
-        mpd.password('chandler243')
+        #mpd.password('chandler243')
     puts "Woot! Successfully linked to MPD"
 rescue
         puts "Oh, crap. Looks like we couldn't communicate with the MPD server at #{HOST}:#{PORT}."
@@ -21,155 +23,198 @@ end
 
 Mumble.configure do |conf|
         conf.sample_rate = 48000
-        conf.bitrate = 32000
+        conf.bitrate = 96000
 end
 
-cli = Mumble::Client.new('localhost') do |conf|
-        conf.username = 'Jenkins'
+cli = Mumble::Client.new('########') do |conf|
+        conf.username = 'music_bot'
+	conf.password = '#########'
 end
 
 
-bot = Cinch::Bot.new do
-  configure do |c|
-    c.server = "irc.freenode.org"
-    c.channels = ["#ChandlersHax"]
-  end
+#bot = Cinch::Bot.new do
+ # configure do |c|
+   # c.server = "irc.freenode.org"
+   # c.channels = ["#ChandlersHax"]
+  #end
 
-  on :message, "hello" do |m|
-    m.reply "Hello, #{m.user.nick}"
-    $channel = cli.me.channel_id
-  end
-end
+  #on :message, "hello" do |m|
+    #m.reply "Hello, #{m.user.nick}"
+    #$channel = "Turtle Mumble"
+  #end
+#end
 
 
 cli.connect
-sleep(1)
+sleep(2)
 
-stream = cli.stream_raw_audio('/tmp/mumble.fifo')
-stream.volume = 10
-$vol = 10
-VERSION = 0.2
-CHILL = false
+stream = cli.player.stream_named_pipe('/tmp/mpd.fifo')
+#stream.volume = 10
+$vol = 100
+VERSION = 0.3
+#CHILL = false
 SHUFFLE = true
-$channel = cli.me.channel_id
-cli.text_channel($channel,"Jenkins Version #{VERSION} Successfully Initialized.")
-YT = "null"
 
+$channel = "music"
+cli.join_channel('music')
+cli.text_channel($channel,"music_bot Version #{VERSION} Successfully Initialized.")
+yt = "null"
+system 'mpc repeat on'
 mpd.on :song do |song|
         song = mpd.current_song
         puts "Hey, look! We are now playing #{song.file}"
 end
-
+$trackArtist=[]
+$trackName=[]
+$trackURI=[]
 cli.on_text_message do |msg|
-        $channel = cli.me.channel_id
-        song = mpd.current_song
         case msg.message
         when "!skip"
                 mpd.next
-                song = mpd.current_song
-            cli.text_channel($channel,"Song skipped, now playing: #{song.file}")
-        when "!stats"
-                stats = `mpc --host chandler243@localhost stats`
-                cli.text_channel($channel,stats)
+		sleep(1)
+                song = `mpc current`
+            cli.text_channel($channel,"Song skipped, now playing: "+ song)
+        when "!uptime"
+                uptime = `uptime -p | sed 's/up //'`
+                cli.text_channel($channel,"Server has been up for "+ uptime)
         when "!reset"
-                exec("./jenkins.rb")
+                exec("~/Projects/Jenkins/jenkins.rb")
         when "!next"
-                $channel = cli.me.channel_id
+                $channel = "music"
                 print("Coming up: #{mpd.queue(1..10)}")
         when "!help"
-                cli.text_channel($channel, "<br><center><strong>Jenkins Commands</strong></center>
+                cli.text_channel($channel , "<br><center><strong>music_bot Commands</strong></center>
                         <dl>
                         <dt>Volume</dt>
-                        <dd> - Run the commands !volUp and !volDown to adjust volume</dd>
+                        <dd> - Run the commands !volume # !volUp and !volDown to adjust volume</dd>
                         <dt>Playback</dt>
-                        <dd> - Use !skip and !toggle to modify playback</dd>
-                        <dt>Regular Playback</dt>
-                        <dd> - You can resume normal playback at any time by typing !resume</dd>
-                        <dt>Chill Out</dt>
-                        <dd> - Want to kick back and relax? Run !chill to load up a chill playlist</dd>
-                        <dt>Praise Gaben</dt>
-                        <dd> - Want to praise our dear lord Gaben? Run !gaben to load up songs for our glorious master.</dd>
+                        <dd> - Use !skip and !play # to modify playback</dd>
                         <dt>Status</dt>
-                        <dd> - Looking for the current status of the bot? Run this to get detailed information</dd>
+                        <dd> - Looking for the current status of the bot? !status to get detailed information</dd>
                         </dl>
-                <strong>ChandlersHax - 2/26/14</strong>")
-        when "!toggle"
-                system 'mpc --host chandler243@localhost toggle'
-        when "!gaben"
-                system 'mpc --host chandler243@localhost clear && mpc --host chandler243@localhost load gaben && mpc --host chandler243@localhost play'
+                <strong>axm - 10/8/17</strong>")
+        #when "!toggle"
+                #system 'mpc toggle'
+        when "!donger"
+                #system 'mpc clear && mpc --host chandler243@localhost load gaben && mpc --host chandler243@localhost play'
                 # mpd.clear
                 # mpd.playlist.load('gaben')
-                # mpd.play
                 cli.text_channel($channel,"work it ᕙ༼ຈل͜ຈ༽ᕗ harder")
                 cli.text_channel($channel,"make it (ง •̀_•́)ง better")
                 cli.text_channel($channel,"do it ᕦ༼ຈل͜ຈ༽ᕤ faster")
                 cli.text_channel($channel,"raise ur ヽ༼ຈل͜ຈ༽ﾉ donger")
-        when "!ateam"
-                system 'mpc --host chandler243@localhost clear && mpc --host chandler243@localhost load ateam && mpc --host chandler243@localhost play'
-                cli.text_channel($channel,"ALL HAIL BASED RICK!!!!")
-        when "!chill"
-                system 'mpc --host chandler243@localhost clear && mpc --host chandler243@localhost load chill && mpc --host chandler243@localhost random on && mpc --host chandler243@localhost play'
-            song = `mpc --host chandler243@localhost current`
-            cli.text_channel($channel,'You''re now chilling out, starting with ' + song)
-        when "!resume"
-                system 'mpc --host chandler243@localhost clear && mpc --host chandler243@localhost load derp && mpc --host chandler243@localhost random on && mpc --host chandler243@localhost play'
-            song = `mpc --host chandler243@localhost current`
-                cli.text_channel($channel, "Now resuming normal playback, starting off with " + song)
-        when "!loop"
-                system 'mpc --host chandler243@localhost repeat'
-        when "!playliststat"
-                playliststat = `mpc --host chandler243@localhost playlist`
-            cli.text_channel($channel,playliststat)
+        when "!clear"
+                system 'mpc crop'
+                cli.text_channel($channel,"Queue has been cleared of all songs except the current one")
+	when "!song"
+		song = `mpc current`
+		cli.text_channel($channel, "The current song is: "+ song)
+	when "!volup"
+		system 'mpc volume +10'
+		cli.text_channel($channel, "Volume has been increased by 10")
+	when "!voldown"
+		system 'mpc volume -10'
+		cli.text_channel($channel, "Volume has been decreased by 10")
+        #when "!resume"
+                #system 'mpc  clear && mpc --host chandler243@localhost load derp && mpc --host chandler243@localhost random on && mpc --host chandler243@localhost play'
+            #song = `mpc --host chandler243@localhost current`
+                #cli.text_channel($channel, "Now resuming normal playback, starting off with " + song)
+        #when "!loop"
+                #system 'mpc repeat'
+        when "!queue"
+                queue = `mpc playlist -f "[%position%) %artist% - %title%]"`
+            cli.text_channel($channel,queue)
         when "!status"
-                status = `mpc --host chandler243@localhost`
+                status = `mpc`
             cli.text_channel($channel,status)
-        when "!song"
-                song = `mpc --host chandler243@localhost current`
-            cli.text_channel($channel,song + "Now get back to playing polo.")
-        when "!bigqueue"
-                cli.text_channel($channel,"Please standby, recompiling the queue...")
-                system "mpc --host chandler243@localhost clear"
-                system "mpc --host chandler243@localhost update"
-                system "mpc --host chandler243@localhost listall | mpc --host chandler243@localhost add"
-                sleep(2)
-                system "mpc --host chandler243@localhost play"
-                cli.text_channel($channel,"Finished compiling the queue. All songs added. Enjoy!")
+        #when "!song"
+                #currentsong = `mpc current`
+            #cli.text_channel($channel,currentsong)
+        #when "!bigqueue"
+                #cli.text_channel($channel,"Please standby, recompiling the queue...")
+                #system "mpc --host chandler243@localhost clear"
+                #system "mpc --host chandler243@localhost update"
+                #system "mpc --host chandler243@localhost listall | mpc --host chandler243@localhost add"
+                #sleep(2)
+                #system "mpc --host chandler243@localhost play"
+                #cli.text_channel($channel,"Finished compiling the queue. All songs added. Enjoy!")
         when "!shuffle" #Toggle Shuffle Status
                 if SHUFFLE == true
                         cli.text_channel($channel, "Now shuffling songs, !shuffle again to stop.")
-                        system `mpc --host chandler243@localhost random on`
+                        system `mpc random on`
                         SHUFFLE = !SHUFFLE
                 else
                    cli.text_channel($channel, "No longer shuffling songs. !shuffle to start again.")
-                        system `mpc --host chandler243@localhost random off`
+                        system `mpc random off`
                         SHUFFLE = !SHUFFLE
                 end
         else
                  if /!yt./.match(msg.message)
-                    YT = msg.message
-                    print(YT)
-                    YT = YT[4, 100]
-                    system "youtube-dl --extract-audio --audio-format mp3 --no-playlist -o '/var/lib/mpd/music/mumbledownload/%(title)s.%(ext)s' #{YT}"
-                    cli.text_channel($channel, "The video located at #{YT} has been successfully downloaded and converted!")
-                 elsif /!sc./.match(msg.message)
-                        SC = msg.message
-                        print(SC)
-                        SC = SC[4,100]
-                        system "./scdl.sh #{SC}"
-                        cli.text_channel($channel, "The song(s) located at #{SC} has been successfully downloaded and converted!")
-                 elsif /!vol./.match(msg.message)
-                        $vol = msg.message
-                        $vol = $vol[5,100]
-                        $vol = $vol.to_i
-                        stream.volume = $vol
-                 else
+                    yt = msg.message.match(/http[s]?:\/\/(.+?)\"/).to_s.chop
+                    print(yt)
+                    #yt = yt[4, 100]
+                    system "mpc add yt:#{yt}"
+                    cli.text_channel($channel, "The video located at #{yt}" + " has been successfully added to the current playlist")
+		 
+		 elsif /!seek./.match(msg.message)
+			 seek = msg.message
+			 seek = seek[6,100]
+			 system "mpc seek #{seek}"
+			 cli.text_channel($channel, "seeking...")
+		 
+		 elsif /!play./.match(msg.message)
+			 play = msg.message
+			 play = play[5,100]
+			 system "mpc play #{play}"
+			 cli.text_channel($channel, "Playing # #{play}" + " in the queue")
+		 
+		 elsif /!spotify./.match(msg.message)
+                        spotify = msg.message
+                        print(spotify)
+                        spotify = spotify[1,100]
+                        system "mpc add #{spotify}"
+                        cli.text_channel($channel, "The song(s) located at #{spotify} has been successfully added to the current playlist")
+                 
+		 elsif /!volume./.match(msg.message)
+                        volume = msg.message
+			volume = volume[8,100]
+			print(volume)
+			system "mpc volume #{volume}"
+                 
+		 elsif /!ss./.match(msg.message)
+			ss = msg.message
+			ss = ss[4,100]
+			searchTrack=ss
+			track = RSpotify::Track.search(searchTrack)
+
+			for i in 0..track.length - 1
+				artist = track[i].artists[0]
+				$trackArtist[i]=artist.name
+				$trackName[i]=track[i].name
+				$trackURI[i]=track[i].uri
+			end
+
+			for i in 0.. track.length - 1
+				cli.text_channel($channel, (i+1).to_s + ") " + $trackName[i] + " By: " + $trackArtist[i] + "\n")
+			end
+			puts $trackURI
+
+		 elsif /!sa./.match(msg.message)
+			sa = msg.message
+			sa = sa[4,100]
+			sa = sa.to_i - 1
+			uri = $trackURI[sa]
+			system "mpc add #{uri}" 
+
+		 else
                         print("Diagnostic Message:".yellow + "Non-command message was sent in the channel. Ignoring.\n")
-                 end
+                 
+		 end
         end
 end
 
 
 puts "\e[H\e[2J"
-print "Jenkins revision #{VERSION} is now properly loaded. Press enter to force shutdown.\n".green;
+print "music_bot revision #{VERSION} is now properly loaded. Press enter to force shutdown.\n".green;
 gets
 cli.disconnect
